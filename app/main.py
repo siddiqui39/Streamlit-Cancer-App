@@ -3,6 +3,9 @@ import pickle
 import pandas as pd
 import os
 import plotly.graph_objects as go
+import numpy as np
+import joblib
+
 
 def get_clean_data():
     base_dir= os.path.dirname(os.path.dirname(__file__))
@@ -61,7 +64,22 @@ def add_sidebar():
         )
     return input_dict
 
+def get_scaled_values(input_dict):
+    data= get_clean_data()
+
+    x= data.drop(["diagnosis"], axis=1)
+    scaled_dict= {}
+
+    for key, value in input_dict.items():
+        max_val= x[key].max()
+        min_val= x[key].min()
+        scaled_value= (value - min_val / max_val - min_val)
+        scaled_dict[key]= scaled_value
+
+    return scaled_dict
+
 def get_radar_chart(input_data):
+    input_data= get_scaled_values(input_data)
     categories= ['Radius', 'Texture', 'Perimeter', 'Area',
                 'Smoothness', 'Compactness',
                 'Concavity', 'Concave Points',
@@ -108,15 +126,46 @@ def get_radar_chart(input_data):
     ))
     fig.update_layout(
         polar= dict(
-            redialaxis= dict(
+            radialaxis= dict(
                 visible= True,
-                range= [0, 5]
+                range= [0, 1]
             )),
-        showlegend= False
+        showlegend= True
     )
     return fig
 
+def add_predictions(input_data):
+    # get absolute path to model folder
+    base_dir = os.path.dirname(os.path.dirname(__file__))  # project root
+    model_folder = os.path.join(base_dir, "model")
 
+    model_path = os.path.join(model_folder, "model.pkl")
+    scaler_path = os.path.join(model_folder, "scaler.pkl")
+
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
+    with open(scaler_path, "rb") as f:
+        scaler = pickle.load(f)
+
+    input_array = np.array(list(input_data.values())).reshape(1, -1)
+    input_array_scaled = scaler.transform(input_array)
+
+    prediction = model.predict(input_array_scaled)
+
+    st.subheader("Cell cluster prediction")
+    st.write("The cell cluster is:")
+
+    if prediction[0] == 0:
+        st.write("<span class='diagnosis benign'>Benign</span>", unsafe_allow_html=True)
+    else:
+        st.write("<span class='diagnosis malicious'>Malicious</span>", unsafe_allow_html=True)
+
+    st.write("Probability of being benign: ", model.predict_proba(input_array_scaled)[0][0])
+    st.write("Probability of being malicious: ", model.predict_proba(input_array_scaled)[0][1])
+    st.write("This app can assist medical professionals in making a diagnosis, but should not be used as a substitute for a professional diagnosis.")
+
+
+    st.write(prediction)
 
 
 # App interface
@@ -128,20 +177,23 @@ def main():
         initial_sidebar_state= "expanded"
     )
 
+    with open("assets/style.css") as f:
+        st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
+
     input_data= add_sidebar()
     st.write(input_data)
 
-with st.container():
-    st.title("Breast Cancer Predictor")
-    st.write("Please connect us to your cytology lab to help diagnose breast cancer from your tissue sample. This app predicts using a machine learning model whether a breast mass is benign or malignant based on the measurements it receives from your lab. You can also update the measurements by hand using the sliders in the sidebar. ")
+    with st.container():
+        st.title("Breast Cancer Predictor")
+        st.write("Please connect us to your cytology lab to help diagnose breast cancer from your tissue sample. This app predicts using a machine learning model whether a breast mass is benign or malignant based on the measurements it receives from your lab. You can also update the measurements by hand using the sliders in the sidebar. ")
 
-col1, col2= st.columns([4,1])
+    col1, col2= st.columns([4,1])
 
-with col1:
-    radar_chart= get_radar_chart(input_data)
-    st.plotly_chart(radar_chart)
-with col2:
-    st.write("this is column 2")
+    with col1:
+        radar_chart= get_radar_chart(input_data)
+        st.plotly_chart(radar_chart)
+    with col2:
+        add_predictions(input_data)
 
 
 

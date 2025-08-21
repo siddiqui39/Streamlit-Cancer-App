@@ -40,22 +40,30 @@ def get_clean_data():
     return data
 
 def main():
-    data= get_clean_data()
+    # Get project base directory
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data = get_clean_data()
 
-    model, scaler= create_model(data)
-    # get the folder, where this script is located
-    base_dir= os.path.dirname(__file__)
-    model = os.path.join(base_dir, "model.pkl")
-    scaler = os.path.join(base_dir, "scaler.pkl")
+    # Create model and scaler
+    model, scaler = create_model(data)
 
+    # Define model folder inside project
+    model_folder = os.path.join(base_dir, "model")
+    os.makedirs(model_folder, exist_ok=True)
 
-    with open("model.pkl", "wb") as f:
+    # Define absolute paths for pickle files
+    model_path = os.path.join(model_folder, "model.pkl")
+    scaler_path = os.path.join(model_folder, "scaler.pkl")
+
+    # Debug
+    print("Model path:", model_path)
+    print("Scaler path:", scaler_path)
+
+    # Save pickles
+    with open(model_path, "wb") as f:
         pickle.dump(model, f)
-    with open("scaler.pkl", "wb") as f:
+    with open(scaler_path, "wb") as f:
         pickle.dump(scaler, f)
-
-
-
 
 
 
