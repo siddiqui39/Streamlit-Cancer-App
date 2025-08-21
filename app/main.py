@@ -4,14 +4,18 @@ import pandas as pd
 import os
 import plotly.graph_objects as go
 import numpy as np
-import joblib
+
+
 
 
 def get_clean_data():
     base_dir= os.path.dirname(os.path.dirname(__file__))
     file_path= os.path.join(base_dir, "data", "data.csv")
     data = pd.read_csv(file_path)
+
     data = data.drop(["Unnamed: 32", "id"], axis=1)
+    data["diagnosis"] = data["diagnosis"].map({"B": 0, "M": 1})
+
     return data
 
     # Create sidebar
@@ -68,6 +72,7 @@ def get_scaled_values(input_dict):
     data= get_clean_data()
 
     x= data.drop(["diagnosis"], axis=1)
+
     scaled_dict= {}
 
     for key, value in input_dict.items():
@@ -80,6 +85,7 @@ def get_scaled_values(input_dict):
 
 def get_radar_chart(input_data):
     input_data= get_scaled_values(input_data)
+
     categories= ['Radius', 'Texture', 'Perimeter', 'Area',
                 'Smoothness', 'Compactness',
                 'Concavity', 'Concave Points',
@@ -147,6 +153,7 @@ def add_predictions(input_data):
     with open(scaler_path, "rb") as f:
         scaler = pickle.load(f)
 
+
     input_array = np.array(list(input_data.values())).reshape(1, -1)
     input_array_scaled = scaler.transform(input_array)
 
@@ -155,13 +162,16 @@ def add_predictions(input_data):
     st.subheader("Cell cluster prediction")
     st.write("The cell cluster is:")
 
+
+
     if prediction[0] == 0:
         st.write("<span class='diagnosis benign'>Benign</span>", unsafe_allow_html=True)
     else:
         st.write("<span class='diagnosis malicious'>Malicious</span>", unsafe_allow_html=True)
 
-    st.write("Probability of being benign: ", model.predict_proba(input_array_scaled)[0][0])
-    st.write("Probability of being malicious: ", model.predict_proba(input_array_scaled)[0][1])
+    probs= model.predict_proba(input_array_scaled)
+    st.write("Probability of being benign: ", probs[0][0])
+    st.write("Probability of being malicious: ", probs[0][1])
     st.write("This app can assist medical professionals in making a diagnosis, but should not be used as a substitute for a professional diagnosis.")
 
 
@@ -181,7 +191,7 @@ def main():
         st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
 
     input_data= add_sidebar()
-    st.write(input_data)
+
 
     with st.container():
         st.title("Breast Cancer Predictor")
@@ -194,14 +204,6 @@ def main():
         st.plotly_chart(radar_chart)
     with col2:
         add_predictions(input_data)
-
-
-
-
-
-
-
-
 
 
 
