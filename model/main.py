@@ -1,4 +1,5 @@
 import pandas as pd
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
@@ -11,9 +12,11 @@ def create_model(data):
     x= data.drop(["diagnosis"], axis=1)
     y= data["diagnosis"]
 
-    # scale the data
-    scaler= StandardScaler()
-    x= scaler.fit_transform(x)
+    # Define pipeline
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('log_reg', LogisticRegression())
+    ])
 
     # split the data
     x_train, x_test, y_train, y_test = train_test_split(
@@ -21,15 +24,14 @@ def create_model(data):
     )
 
     # train model
-    model= LogisticRegression()
-    model.fit(x_train, y_train)#
+    pipeline.fit(x_train, y_train)
 
     # test model
-    y_pred= model.predict(x_test)
+    y_pred= pipeline.predict(x_test)
     print("Accuracy of our model: ", accuracy_score(y_test, y_pred))
     print("Classification report: \n", classification_report(y_test, y_pred))
 
-    return  model, scaler
+    return  pipeline
 
 def get_clean_data():
     data= pd.read_csv("../data/data.csv")
@@ -45,27 +47,23 @@ def main():
     data = get_clean_data()
 
     # Create model and scaler
-    model, scaler = create_model(data)
+    pipeline = create_model(data)
 
     # Define model folder inside project
     model_folder = os.path.join(base_dir, "model")
     os.makedirs(model_folder, exist_ok=True)
 
     # Define absolute paths for pickle files
-    model_path = os.path.join(model_folder, "model.pkl")
-    scaler_path = os.path.join(model_folder, "scaler.pkl")
+    model_path = os.path.join(model_folder, "pipeline.pkl")
+
 
     # Debug
-    print("Model path:", model_path)
-    print("Scaler path:", scaler_path)
+    print("Pipeline path:", model_path)
 
-    # Save pickles
+
+    # Save pickle
     with open(model_path, "wb") as f:
-        pickle.dump(model, f)
-    with open(scaler_path, "wb") as f:
-        pickle.dump(scaler, f)
-
-
+        pickle.dump(pipeline, f)
 
 
 if __name__ == "__main__":
