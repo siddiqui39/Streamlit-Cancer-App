@@ -145,19 +145,16 @@ def add_predictions(input_data):
     base_dir = os.path.dirname(os.path.dirname(__file__))  # project root
     model_folder = os.path.join(base_dir, "model")
 
-    model_path = os.path.join(model_folder, "model.pkl")
-    scaler_path = os.path.join(model_folder, "scaler.pkl")
+    model_path = os.path.join(model_folder, "pipeline.pkl")
 
     with open(model_path, "rb") as f:
-        model = pickle.load(f)
-    with open(scaler_path, "rb") as f:
-        scaler = pickle.load(f)
+        pipeline = pickle.load(f)
 
 
     input_array = np.array(list(input_data.values())).reshape(1, -1)
-    input_array_scaled = scaler.transform(input_array)
 
-    prediction = model.predict(input_array_scaled)
+
+    prediction = pipeline.predict(input_array)
 
     st.subheader("Cell cluster prediction")
     st.write("The cell cluster is:")
@@ -169,7 +166,7 @@ def add_predictions(input_data):
     else:
         st.write("<span class='diagnosis malicious'>Malicious</span>", unsafe_allow_html=True)
 
-    probs= model.predict_proba(input_array_scaled)
+    probs= pipeline.predict_proba(input_array)
     st.write("Probability of being benign: ", probs[0][0])
     st.write("Probability of being malicious: ", probs[0][1])
     st.write("This app can assist medical professionals in making a diagnosis, but should not be used as a substitute for a professional diagnosis.")
