@@ -7,3 +7,8 @@ The Breast Cancer Diagnosis app is a machine learning-based tool designed to sup
 ## Requirements
 1. Python 3.10 or higher.
 2. Streamlit– for creating the web-based GUI.
+
+<p align="left">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="Python" width="60" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/streamlit/streamlit-original.svg" alt="Streamlit" width="60" />
+</p>
