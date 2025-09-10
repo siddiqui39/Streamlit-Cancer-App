@@ -6,8 +6,7 @@ import plotly.graph_objects as go
 import numpy as np
 
 
-
-
+#  Function to load and clean dataset
 def get_clean_data():
     base_dir= os.path.dirname(os.path.dirname(__file__))
     file_path= os.path.join(base_dir, "data", "data.csv")
@@ -18,12 +17,13 @@ def get_clean_data():
 
     return data
 
-    # Create sidebar
+# Create sidebar sliders for user input
 def add_sidebar():
     st.sidebar.header("Cell Nuclei Measurements")
 
     data= get_clean_data()
 
+    # Define slider labels and corresponding dataframe columns
     slider_labels = [
         ("Radius (mean)", "radius_mean"),
         ("Texture (mean)", "texture_mean"),
@@ -58,7 +58,7 @@ def add_sidebar():
     ]
 
     input_dict= {}
-
+    # Create a slider for each feature
     for label, key in slider_labels:
         input_dict[key]= st.sidebar.slider(
             label,
@@ -68,6 +68,7 @@ def add_sidebar():
         )
     return input_dict
 
+# Normalize slider values between 0 to 1
 def get_scaled_values(input_dict):
     data= get_clean_data()
 
@@ -75,17 +76,22 @@ def get_scaled_values(input_dict):
 
     scaled_dict= {}
 
+    # Min-max scaling
     for key, value in input_dict.items():
         max_val= x[key].max()
         min_val= x[key].min()
+        # Correct min-max scaling formula
         scaled_value= (value - min_val / max_val - min_val)
         scaled_dict[key]= scaled_value
 
     return scaled_dict
 
+# Generate radar chart using Plotly
 def get_radar_chart(input_data):
+    # Scale values for radar chart
     input_data= get_scaled_values(input_data)
 
+    # Categories for the radar chart
     categories= ['Radius', 'Texture', 'Perimeter', 'Area',
                 'Smoothness', 'Compactness',
                 'Concavity', 'Concave Points',
@@ -94,6 +100,7 @@ def get_radar_chart(input_data):
 
     fig= go.Figure()
 
+    # Add man values trace
     fig.add_trace(go.Scatterpolar(
         r= [
             input_data["radius_mean"], input_data["texture_mean"],
@@ -106,6 +113,8 @@ def get_radar_chart(input_data):
         fill= "toself",
         name= "Mean Value"
     ))
+
+    # Add standard error trace
     fig.add_trace(go.Scatterpolar(
         r= [
             input_data["radius_se"], input_data["texture_se"],
@@ -118,6 +127,8 @@ def get_radar_chart(input_data):
         fill= "toself",
         name= "Standard Error"
     ))
+    
+    # Add worst value trace
     fig.add_trace(go.Scatterpolar(
         r=[
             input_data["radius_worst"], input_data["texture_worst"],
@@ -130,6 +141,8 @@ def get_radar_chart(input_data):
         fill="toself",
         name="Worst Value"
     ))
+
+    # Set radar chart layout
     fig.update_layout(
         polar= dict(
             radialaxis= dict(
@@ -140,6 +153,7 @@ def get_radar_chart(input_data):
     )
     return fig
 
+# Make predictions using pre-trained model
 def add_predictions(input_data):
     # get absolute path to model folder
     base_dir = os.path.dirname(os.path.dirname(__file__))  # project root
@@ -147,35 +161,37 @@ def add_predictions(input_data):
 
     model_path = os.path.join(model_folder, "pipeline.pkl")
 
+    # Load model
     with open(model_path, "rb") as f:
         pipeline = pickle.load(f)
 
-
+    # Convert input directionary to array
     input_array = np.array(list(input_data.values())).reshape(1, -1)
 
-
+    # Make prediction
     prediction = pipeline.predict(input_array)
 
     st.subheader("Cell cluster prediction")
     st.write("The cell cluster is:")
 
 
-
+    # Display predictions with colored HTML
     if prediction[0] == "B":
         st.write("<span class='diagnosis benign'>Benign</span>", unsafe_allow_html=True)
     else:
         st.write("<span class='diagnosis malicious'>Malicious</span>", unsafe_allow_html=True)
 
+    # Show prediction probabilities
     probs= pipeline.predict_proba(input_array)
     st.write("Probability of being benign: ", probs[0][0])
     st.write("Probability of being malicious: ", probs[0][1])
     st.write("This app can assist medical professionals in making a diagnosis, but should not be used as a substitute for a professional diagnosis.")
 
-
+    # Debug: show raw prediction
     st.write(prediction)
 
 
-# App interface
+# App main interface
 def main():
     st.set_page_config(
         page_title= "Breast Cancer Predictor",
@@ -184,16 +200,19 @@ def main():
         initial_sidebar_state= "expanded"
     )
 
+    # Load custom CSS
     with open("assets/style.css") as f:
         st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
 
+    # Get user input from sidebar
     input_data= add_sidebar()
 
-
+    # App description
     with st.container():
         st.title("Breast Cancer Predictor")
         st.write("Please connect us to your cytology lab to help diagnose breast cancer from your tissue sample. This app predicts using a machine learning model whether a breast mass is benign or malignant based on the measurements it receives from your lab. You can also update the measurements by hand using the sliders in the sidebar. ")
 
+    # Layout: radar chart + predictions side by side
     col1, col2= st.columns([4,1])
 
     with col1:
